@@ -1,0 +1,3 @@
+include *.rst *.txt
+global-include *.py
+recursive-include *.txt *.py
