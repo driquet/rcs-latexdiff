@@ -1,5 +1,6 @@
-+ abord if latexdiff is not available
++ abort if latexdiff is not available
 + bibliography (intregate)
 + figures (integrate, copie or not ?)
 + DOCS
 + README
++ Compatibility python 2/3
