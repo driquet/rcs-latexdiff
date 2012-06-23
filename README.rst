@@ -15,12 +15,12 @@ Features:
 
 Install 
 -------
-First, grab sources
+First, grab sources::
 
     $ git clone https://github.com/driquet/rcs-latexdiff.git
     $ cd rcs-latexdiff
 
-You may want to install rcs-latexdiff in a virtualenv ; following steps explain how to do it.
+You may want to install rcs-latexdiff in a virtualenv ; following steps explain how to do it::
 
     $ virtualenv --prompt==rcs-latexdiff venv
     $ source venv/bin/activate
@@ -30,7 +30,7 @@ If you want to install rcs-latexdiff system wide, just skip the first two steps.
 
 Usage 
 -----
-Basic usage is :
+Basic usage is::
     
     $ rcs-latexdiff [OPTIONS] filename old_commit new_commit
 
@@ -39,7 +39,7 @@ The complete usage can be displayed with option `-h`.
 
 Examples
 --------
-For example, if the file `paper.tex` is in a Git repository, you could do:
+For example, if the file `paper.tex` is in a Git repository, you could do::
 
     $ rcs-latexdiff paper.tex HEAD~1 HEAD
 
