@@ -148,8 +148,31 @@ def clean_output_files(files):
         logging.debug("Removing file: %s" % filename)
         os.remove(filename)
 
+def check_latexdiff():
+    """ Check that latexdiff binary is in the PATH """
+    check_latexdiff = "which latexdiff"
+    ret, output = run_command(check_latexdiff)
+
+    # latexdiff tool not available ?
+    if ret:
+        print """latexdiff tool not found in PATH
+Install it or correct your PATH
+
+You can install it as follows:
+    Apt-based distribution:
+        apt-get install latexdiff
+    MacPorts (OS X):
+        sudo port install latexdiff
+"""
+        exit(1)
+
+    
+
 
 def main():
+    # Make sure that latexdiff is available
+    check_latexdiff()
+
     # Parse arguments, init logging and extract information
     args = parse_arguments()
     init_logging(args.verbosity)
