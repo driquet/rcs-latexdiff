@@ -10,7 +10,7 @@ Dependencies:
     * `Python <http://www.python.org/>`_ (2.7 at least)
 
 Features:
-    * Support of Git
+    * Support of Git, SVN
     * Diff of a LaTeX File for different versions
     * Recursive search of files included
 
@@ -58,6 +58,9 @@ No graphics or bibliography when compiling LaTeX file
 
 Diff file won't compile
     It could be due to exotic document class of LaTeX files. Again, verify that all elements are in the path.
+
+rcs-latexdiff is slow for SVN
+    Not rcs-latexdiff's fault, really. SVN is server-based, so it needs to discuss with the server for most operations and it could be pretty long.
 
 Contribute
 ----------
