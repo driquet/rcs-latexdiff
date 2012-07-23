@@ -1,6 +1,8 @@
 import subprocess
 import logging
 
+logger = logging.getLogger("rcs-latexdiff.utils")
+
 def run_command(command):
     """ Run a command and return its output
 
@@ -11,16 +13,16 @@ def run_command(command):
 
     """
     try:
-        logging.info("Run command: %s" % (command))
+        logger.debug("Run command: %s" % (command))
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output = process.communicate()[0]
         retcode = process.returncode
 
-        logging.debug("Return code: %d" % (retcode))
+        logger.debug("Return code: %d" % (retcode))
         return retcode, output
 
     except OSError, e:
-        logging.info("Execution failed: %s" % (e))
+        logger.info("Execution failed: %s" % (e))
         exit(1)
 
 def write_file(content, filename):
@@ -30,6 +32,6 @@ def write_file(content, filename):
         :param filename: name of the file
 
     """
-    logging.info("Writing content into %s" % filename)
+    logger.debug("Writing content into %s" % filename)
     with open(filename, 'w') as f:
         f.write(content)

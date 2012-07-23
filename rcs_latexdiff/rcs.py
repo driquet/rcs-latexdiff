@@ -99,6 +99,54 @@ class Git(RCS):
 
         return root_path, relative_path, filename
 
+class SVN(RCS):
+    """ SVN Revision Control System class """
+
+    def show_file(self, path, commit, filename):
+        # Execute 'svn cat' command and return content or empty string   
+        svn_cat_command = "(cd %s && svn cat -r %s %s)" % (path, commit, filename)
+        ret, file_content = run_command(svn_cat_command)
+
+        # Does the file exist ?
+        if ret:
+            # Return code != 0, file not found for this commit
+            file_content = ""
+
+        return file_content.strip()
+
+    def is_valid_directory(self, path):
+        # Verify that path is a valid repository
+        # Following command do :
+        #   - jump to path
+        #   - svn info
+        #   - jump back to the current dir
+        svn_status_command = "(cd %s && svn info)" % path
+        ret, output = run_command(svn_status_command)
+
+        # Does the repository is a valid RCS dir
+        return ret == 0
+
+    def is_commit(self, path, commit):
+        # Execute 'svn show' command and return True of False according to ret code
+        svn_info_command = "(cd %s && svn info -r %s)" % (path, commit)
+        ret, output = run_command(svn_info_command)
+
+        # Valid commit ?
+        return ret == 0
+
+    def get_relative_paths(self, filename):
+        # In the case of SVN, we can consider use SVN commands whatever the path is
+        # So we don't differentiate root and relative paths
+
+
+        # Get the root path of the repository 
+        root_path = os.path.dirname(filename)
+
+        relative_path = ""
+        filename = os.path.basename(filename)
+
+        return root_path, relative_path, filename
+
 
 
 # Contains all classes

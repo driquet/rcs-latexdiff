@@ -7,6 +7,8 @@ from rcs_latexdiff.rcs import get_rcs_class
 from rcs_latexdiff.utils import run_command, write_file
 
 
+logger = logging.getLogger("rcs-latexdiff")
+
 def get_file(rcs, root_path, relative_path, commit, filename):
     # TODO docs path root and relative
     """ Process a File that includes
@@ -22,6 +24,9 @@ def get_file(rcs, root_path, relative_path, commit, filename):
         :return: the content of the file
 
     """
+    # Debug info
+    logger.info("> Get file %s" % filename)
+
     # Read the file
     file_content = rcs.show_file(root_path, commit, os.path.join(relative_path, filename))
 
@@ -79,8 +84,17 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
         :return: destination file and temporary files
 
     """
+
+    # Debug info
+    logger.info("Root path of the repository: %s" % root_path)
+    if relative_path: logger.info("Relative path: %s" % relative_path)
+    logger.info("Filename: %s" % src_filename)
+    logger.info("Output: %s" % dst_filename)
+
     # Get files
+    logger.info("Get old content (commit %s)..." % old_commit)
     old_content = get_file(rcs, root_path, relative_path, old_commit, src_filename)
+    logger.info("Get new content (commit %s)..." % new_commit)
     new_content = get_file(rcs, root_path, relative_path, new_commit, src_filename)
 
     # Write files
@@ -91,6 +105,7 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
     write_file(new_content, new_filename)
 
     # Exec diff
+    logger.info("Execute latexdiff")
     exec_diff(old_filename, new_filename, dst_filename)
 
     return dst_filename, old_filename, new_filename
@@ -124,13 +139,12 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def init_logging(verbosity):
-    """ Initialization of logging module
+def init_logger(verbosity):
+    """ Initialization of logger module
 
         :param verbosity:
 
     """
-    logger = logging.getLogger()
     FORMAT = '%(message)s'
     logging.basicConfig(format=FORMAT)
 
@@ -145,7 +159,7 @@ def clean_output_files(files):
 
     """
     for filename in files:
-        logging.debug("Removing file: %s" % filename)
+        logger.debug("Removing file: %s" % filename)
         os.remove(filename)
 
 def check_latexdiff():
@@ -173,26 +187,22 @@ def main():
     # Make sure that latexdiff is available
     check_latexdiff()
 
-    # Parse arguments, init logging and extract information
+    # Parse arguments, init logger and extract information
     args = parse_arguments()
-    init_logging(args.verbosity)
+    init_logger(args.verbosity)
 
     # Get the current rcs class
     rcs = get_rcs_class(os.path.dirname(args.FILE)) 
     if not rcs:
-        logging.info("No RCS repository found: %s" % (path))
+        logger.info("No RCS repository found")
         exit(1)
 
     root_path, relative_path, filename = rcs.get_relative_paths(args.FILE)
 
-    print 'root', root_path
-    print 'relative', relative_path
-    print 'filename', filename
-
     # Ensure that commits exist
     for commit in [args.OLD, args.NEW]:
         if not rcs.is_commit(root_path, commit):
-            logging.info("Commit does not exist: %s" % (commit))
+            logger.info("Commit does not exist: %s" % (commit))
             exit(1)
 
     # Make the diff

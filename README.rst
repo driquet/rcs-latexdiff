@@ -50,6 +50,15 @@ You could also use branch names.
 For example, to compare a version submitted to a conference and the final version::
     $ rcs-latexdiff paper.tex submission-version camera-ready-version
 
+
+Troubles
+--------
+No graphics or bibliography when compiling LaTeX file
+    Verify that missing elements are in the path. The simpler is to generate the diff file next to the original file.
+
+Diff file won't compile
+    It could be due to exotic document class of LaTeX files. Again, verify that all elements are in the path.
+
 Contribute
 ----------
 You may want to add another RCS software.
