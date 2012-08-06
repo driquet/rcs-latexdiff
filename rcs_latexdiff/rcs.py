@@ -85,6 +85,7 @@ class Git(RCS):
 
     def get_relative_paths(self, filename):
         path = os.path.dirname(filename)
+        path = '.' if path == '' else path
 
         # Get the root path of the repository 
         git_path_command= "(cd %s && git rev-parse --show-toplevel)" % (path)

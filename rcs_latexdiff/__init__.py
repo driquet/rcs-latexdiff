@@ -192,7 +192,9 @@ def main():
     init_logger(args.verbosity)
 
     # Get the current rcs class
-    rcs = get_rcs_class(os.path.dirname(args.FILE)) 
+    dirname = os.path.dirname(args.FILE)
+    path = '.' if dirname == '' else dirname
+    rcs = get_rcs_class(path)
     if not rcs:
         logger.info("No RCS repository found")
         exit(1)
