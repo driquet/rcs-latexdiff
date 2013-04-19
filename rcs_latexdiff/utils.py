@@ -3,9 +3,10 @@ import logging
 
 logger = logging.getLogger("rcs-latexdiff.utils")
 
-def run_command(command):
+def run_command(command, path=""):
     """ Run a command and return its output
 
+        :param path: where to execute the command
         :param command: Command to be executed
         :return: return code and the output produced by the command
         :rtype: list
@@ -13,6 +14,10 @@ def run_command(command):
 
     """
     try:
+        # Forge command
+        if path not in ['', '.']:
+            command = '(cd %s && %s)' % (path, command)
+
         logger.debug("Run command: %s" % (command))
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output = process.communicate()[0]
