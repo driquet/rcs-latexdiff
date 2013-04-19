@@ -3,8 +3,8 @@ import argparse
 import logging
 import os
 
-from rcs_latexdiff.rcs import get_rcs_class
-from rcs_latexdiff.utils import run_command, write_file
+from rcs import get_rcs_class
+from utils import run_command, write_file
 
 
 logger = logging.getLogger("rcs-latexdiff")
@@ -67,7 +67,7 @@ def exec_diff(old_filename, new_filename, diff_filename):
 
     """
     run_command("latexdiff %s %s > %s" % (old_filename, new_filename, diff_filename))
-        
+
 
 
 def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filename, dst_filename):
@@ -128,7 +128,7 @@ def parse_arguments():
 
     parser.add_argument('-D', '--debug', action='store_const',
         const=logging.DEBUG, dest='verbosity',
-        help='Show all message, including debug messages.')    
+        help='Show all message, including debug messages.')
 
     parser.add_argument('FILE', help='File to be compared.')
 
@@ -150,11 +150,11 @@ def init_logger(verbosity):
 
     if verbosity:
         logger.setLevel(verbosity)
-    
+
 
 def clean_output_files(files):
     """ Clean temporary files generated for the diff tool
-        
+
         :param files: files to be removed
 
     """
@@ -180,7 +180,7 @@ You can install it as follows:
 """
         exit(1)
 
-    
+
 
 
 def main():

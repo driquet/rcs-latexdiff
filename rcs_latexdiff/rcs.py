@@ -1,6 +1,6 @@
 import os
 
-from rcs_latexdiff.utils import run_command
+from utils import run_command
 
 
 class RCS(object):
@@ -121,7 +121,7 @@ class SVN(RCS):
         #   - jump to path
         #   - svn info
         #   - jump back to the current dir
-        svn_status_command = "svn info" % path
+        svn_status_command = "svn info"
         ret, output = run_command(svn_status_command, path)
 
         # Does the repository is a valid RCS dir

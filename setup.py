@@ -10,7 +10,7 @@ except ImportError:
 
 entry_points = {
     'console_scripts': [
-        'rcs-latexdiff = rcs_latexdiff:main',
+        'rcs-latexdiff = rcs_latexdiff.rcs_latexdiff:main',
    ]
 }
 
