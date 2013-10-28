@@ -97,26 +97,31 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
     logger.info("Get new content (commit %s)..." % new_commit)
     new_content = get_file(rcs, root_path, relative_path, new_commit, src_filename)
 
-    # Write files
-    old_filename = dst_filename + ".old"
-    new_filename = dst_filename + ".new"
+    # Write files (in same folder as src_filename)
+    old_filename = os.path.join(root_path, relative_path, dst_filename + ".old")
+    new_filename = os.path.join(root_path, relative_path, dst_filename + ".new")
+    diff_filename = os.path.join(root_path, relative_path, dst_filename)
 
     write_file(old_content, old_filename)
     write_file(new_content, new_filename)
 
     # Exec diff
     logger.info("Execute latexdiff")
-    exec_diff(old_filename, new_filename, dst_filename)
+    exec_diff(old_filename, new_filename, diff_filename)
 
-    return dst_filename, old_filename, new_filename
+    return diff_filename, old_filename, new_filename
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='A tool to generate LaTeX Diff between two Revision Control System commits of a file.')
 
-    parser.add_argument('--clean', action='store_const',
-        const=True, dest='clean',
+    parser.add_argument('--clean', action='store_true',
+        dest='clean',
         help='Clean all files except the generated diff file.')
+        
+    parser.add_argument('--no-pdf', action='store_false',
+        dest='makepdf',
+        help='Don\'t try to run pdflatex on the diff file.')
 
     parser.add_argument('-o', '--output', dest='output', default='diff.tex',
         help='Name of the generated diff file. If not specified, '
@@ -212,6 +217,10 @@ def main():
 
     # Make the diff
     generated_files = make_diff(rcs, args.OLD, args.NEW, root_path, relative_path, filename, args.output)
+
+    # Make the pdf
+    if args.makepdf:
+        pass
 
     # Clean output files
     if args.clean:
