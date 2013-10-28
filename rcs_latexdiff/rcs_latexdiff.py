@@ -119,22 +119,24 @@ def open_pdf(pdf_filename):
     """
     Opens the given file in the default PDF viewing program.
     
-    :param pdf_filename: PDF file to open.
+    :param str pdf_filename: PDF file to open.
     """
 
     # Only the 'posix' case hase been tested...
     if sys.platform.startswith('darwin'):
-        # MAC OS
+        os_str = "Mac OS"
         subprocess.Popen(('open', pdf_filename))
     elif os.name == 'nt':
-        # Windows
+        os_str = "Windows"
         os.startfile(pdf_filename)
     elif os.name == 'posix':
-        # Linux
+        os_str = "Linux"
         with open('/dev/null') as output:
             # When my pdf viewer closes, it spits out some errors or something I 
             # don't care about, so make stderr not inherit from this thread.
             subprocess.Popen(('xdg-open', pdf_filename),stdout=output,stderr=subprocess.STDOUT)
+            
+    logger.info("Opened in default {} PDF viewer: {}".format(os_str, pdf_filename))
 
 def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filename, dst_filename):
     # TODO docs path root and relative
@@ -179,11 +181,35 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='A tool to generate LaTeX Diff between two Revision Control System commits of a file.')
+
+    description = """\
+A tool to generate LaTeX Diff between two Revision 
+Control System commits of a file, compile the resulting .tex, and 
+display it."""
+    
+    epilog = """\
+EXAMPLE USAGE:
+    
+    rcs-latexdiff document.tex HEAD
+        Display the latexdiff'd PDF of the current working version of
+        document.tex compared to the HEAD of the Git repository.
+    
+    rcs-latexdiff document.tex master adivsor
+        Display the latexdiff'd PDF of the changes in the "advisor" branch
+        compared to the master branch.
+        
+    rcs-latexdiff --no-open -o /home/myself/thediff.tex git/repo/doc.tex HEAD^^ HEAD
+        Create (but don't open) the difference between the HEAD and the 
+        grandparent of HEAD as /home/myself/thediff.pdf using the git 
+        repo git/repo
+        
+"""
+    
+    parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--dirty', action='store_false',
         dest='clean',
-        help='Clean all files except the generated diff file.')
+        help='Don\'t clean up files generated along the way (.aux, .log, etc).')
         
     parser.add_argument('--no-pdf', action='store_false',
         dest='makepdf',
@@ -208,9 +234,12 @@ def parse_arguments():
 
     parser.add_argument('FILE', help='File to be compared.')
 
-    parser.add_argument('OLD', help='Old commit (SHA1 or branche name).')
+    parser.add_argument('OLD', help='Old commit (SHA1 or branch name).')
 
-    parser.add_argument('NEW', help='New commit (SHA1 or branche name).')
+    parser.add_argument('NEW', 
+        help='New commit (SHA1 or branch name). If omitted, '
+        'will use the current working copy as NEW.',
+        nargs='?')
 
     return parser.parse_args()
 
@@ -282,7 +311,7 @@ def main():
 
     # Ensure that commits exist
     for commit in [args.OLD, args.NEW]:
-        if not rcs.is_commit(root_path, commit):
+        if not rcs.is_commit(root_path, commit) and commit is not None:
             logger.info("Commit does not exist: %s" % (commit))
             exit(1)
             
