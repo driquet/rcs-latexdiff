@@ -2,6 +2,9 @@ import re
 import argparse
 import logging
 import os
+import glob
+import sys
+import subprocess
 
 from rcs import get_rcs_class
 from utils import run_command, write_file
@@ -68,7 +71,72 @@ def exec_diff(old_filename, new_filename, diff_filename):
     """
     run_command("latexdiff %s %s > %s" % (old_filename, new_filename, diff_filename))
 
+def exec_pdflatex(tex_filename, src_path):
+    """
+    Exect pdflatex
+    
+    :param tex_filename: File name of the .tex to compile.
+    :param src_path: Path from which pdflatex will be called (this should
+        make most figures work).
+    :return: PDF file name.
+    """
+    
+    tex_path = os.path.dirname(tex_filename)    
+    
+    aux_filename = os.path.splitext(tex_filename)[0] + ".aux"
+    pdf_filename = os.path.splitext(tex_filename)[0] + ".pdf"
+    
+    # We enter the folder of the source to get proper relative paths to 
+    # figures
+    starting_dir = os.getcwd()
+    os.chdir(src_path)
+    
+    def single_run():
+        run_command("pdflatex -interaction nonstopmode -output-directory {} {}".format(tex_path, tex_filename))
+    
+    # Run pdflatex and bibtex a bunch of times
+    try:
+        single_run()
+        single_run()
+        
+        if os.path.isfile(aux_filename):
+            run_command("bibtex %s" % tex_filename)
+            run_command("bibtex %s" % aux_filename)
+            
+        single_run()
+        single_run()
+        
+        logger.info("Ran pdflatex and bibtex.")
+    except:
+        logger.debug("Problem building pdf file.")
+    
+    # Return to original directory
+    os.chdir(starting_dir)    
+    
+    return pdf_filename
+    
+def open_pdf(pdf_filename):
+    """
+    Opens the given file in the default PDF viewing program.
+    
+    :param str pdf_filename: PDF file to open.
+    """
 
+    # Only the 'posix' case hase been tested...
+    if sys.platform.startswith('darwin'):
+        os_str = "Mac OS"
+        subprocess.Popen(('open', pdf_filename))
+    elif os.name == 'nt':
+        os_str = "Windows"
+        os.startfile(pdf_filename)
+    elif os.name == 'posix':
+        os_str = "Linux"
+        with open('/dev/null') as output:
+            # When my pdf viewer closes, it spits out some errors or something I 
+            # don't care about, so make stderr not inherit from this thread.
+            subprocess.Popen(('xdg-open', pdf_filename),stdout=output,stderr=subprocess.STDOUT)
+            
+    logger.info("Opened in default {} PDF viewer: {}".format(os_str, pdf_filename))
 
 def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filename, dst_filename):
     # TODO docs path root and relative
@@ -97,9 +165,10 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
     logger.info("Get new content (commit %s)..." % new_commit)
     new_content = get_file(rcs, root_path, relative_path, new_commit, src_filename)
 
-    # Write files
-    old_filename = dst_filename + ".old"
-    new_filename = dst_filename + ".new"
+    # Write files (in same folder as dst_filename)
+    dst_path = os.path.dirname(os.path.abspath(dst_filename))
+    old_filename = os.path.join(dst_path, os.path.basename(dst_filename) + ".old")
+    new_filename = os.path.join(dst_path, os.path.basename(dst_filename) + ".new")
 
     write_file(old_content, old_filename)
     write_file(new_content, new_filename)
@@ -112,15 +181,48 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='A tool to generate LaTeX Diff between two Revision Control System commits of a file.')
 
-    parser.add_argument('--clean', action='store_const',
-        const=True, dest='clean',
-        help='Clean all files except the generated diff file.')
+    description = """\
+A tool to generate LaTeX Diff between two Revision 
+Control System commits of a file, compile the resulting .tex, and 
+display it."""
+    
+    epilog = """\
+EXAMPLE USAGE:
+    
+    rcs-latexdiff document.tex HEAD
+        Display the latexdiff'd PDF of the current working version of
+        document.tex compared to the HEAD of the Git repository.
+    
+    rcs-latexdiff document.tex master adivsor
+        Display the latexdiff'd PDF of the changes in the "advisor" branch
+        compared to the master branch.
+        
+    rcs-latexdiff --no-open -o /home/myself/thediff.tex git/repo/doc.tex HEAD^^ HEAD
+        Create (but don't open) the difference between the HEAD and the 
+        grandparent of HEAD as /home/myself/thediff.pdf using the git 
+        repo git/repo
+        
+"""
+    
+    parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('-o', '--output', dest='output', default='diff.tex',
+    parser.add_argument('--dirty', action='store_false',
+        dest='clean',
+        help='Don\'t clean up files generated along the way (.aux, .log, etc).')
+        
+    parser.add_argument('--no-pdf', action='store_false',
+        dest='makepdf',
+        help='Don\'t try to run pdflatex on the diff file.')
+        
+    parser.add_argument('--no-open', action='store_false',
+        dest='openpdf',
+        help='Don\'t try to open the created pdf file.')
+
+    parser.add_argument('-o', '--output', dest='output',
         help='Name of the generated diff file. If not specified, '
-             'default output will be "diff.tex" in the current path.')
+             'default output will be "diff.tex" in the path of '
+             'the file you are comparing.')
 
     parser.add_argument('-v', '--verbose', action='store_const',
         const=logging.INFO, dest='verbosity',
@@ -132,9 +234,12 @@ def parse_arguments():
 
     parser.add_argument('FILE', help='File to be compared.')
 
-    parser.add_argument('OLD', help='Old commit (SHA1 or branche name).')
+    parser.add_argument('OLD', help='Old commit (SHA1 or branch name).')
 
-    parser.add_argument('NEW', help='New commit (SHA1 or branche name).')
+    parser.add_argument('NEW', 
+        help='New commit (SHA1 or branch name). If omitted, '
+        'will use the current working copy as NEW.',
+        nargs='?')
 
     return parser.parse_args()
 
@@ -159,8 +264,11 @@ def clean_output_files(files):
 
     """
     for filename in files:
-        logger.debug("Removing file: %s" % filename)
-        os.remove(filename)
+        try:
+            os.remove(filename)
+            logger.info("Removed file: %s" % filename)
+        except OSError:
+            logger.debug("Could not remove file: %s" % filename)
 
 def check_latexdiff():
     """ Check that latexdiff binary is in the PATH """
@@ -203,16 +311,35 @@ def main():
 
     # Ensure that commits exist
     for commit in [args.OLD, args.NEW]:
-        if not rcs.is_commit(root_path, commit):
+        if not rcs.is_commit(root_path, commit) and commit is not None:
             logger.info("Commit does not exist: %s" % (commit))
             exit(1)
+            
+    # Populate the default output file
+    if args.output is None:
+        dst_filename = os.path.join(root_path, relative_path, 'diff.tex')
+    else:
+        dst_filename = args.output
 
     # Make the diff
-    generated_files = make_diff(rcs, args.OLD, args.NEW, root_path, relative_path, filename, args.output)
+    make_diff(rcs, args.OLD, args.NEW, root_path, relative_path, filename, dst_filename)
+
+    # Make the pdf
+    if args.makepdf:
+        pdf_filename = exec_pdflatex(dst_filename, os.path.join(root_path, relative_path))
+        
+    # Open the pdf
+    if args.openpdf:
+        open_pdf(pdf_filename)
 
     # Clean output files
     if args.clean:
-        clean_output_files(generated_files[1:])
+        # Clean everything except diff.pdf or diff.tex depending on makepdf
+        clean_glob = glob.glob(os.path.splitext(dst_filename)[0] + '.*')
+        keep_ext = 'pdf' if args.makepdf else 'tex'
+        clean_glob = [f for f in clean_glob if f[-3:] != keep_ext]
+        
+        clean_output_files(clean_glob)
 
 
 if __name__ == '__main__':

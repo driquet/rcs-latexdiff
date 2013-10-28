@@ -1,21 +1,33 @@
 import os
+import logging
 
 from utils import run_command
+
+logger = logging.getLogger("rcs-latexdiff")
 
 
 class RCS(object):
     """ Revision Control System class """
 
     def show_file(self, path, commit, filename):
-        """ Return the content of a file for a commit
+        """ Return the content of a file for a commit. If the commit is `None`,
+            show the current working copy.
 
             :param path: path of the repository
-            :param commit: Commit name
+            :param commit: Commit name or `None`
             :param filename: Name of the file
             :return: the content of the file (may be empty if the file does not exist)
 
         """
-        pass
+        # Use current working copy
+        if commit is None:
+            try:
+                with open(os.path.join(path, filename)) as f:
+                    contents = f.read()
+                logger.debug("Read contents of {}".format(os.path.join(path, filename)))
+                return contents
+            except IOError:
+                logger.debug("Error reading working copy: {}".format(os.path.join(path, filename)))
 
     def is_valid_directory(self, path):
         """ Return wheter or not the directory is a valid RCS repository
@@ -51,6 +63,11 @@ class Git(RCS):
     """ Git Revision Control System class """
 
     def show_file(self, path, commit, filename):
+        
+        # Use current working copy
+        if commit is None:
+            return super(Git, self).show_file(path, commit, filename)
+        
         # Execute 'git show' command and return content or empty string
         git_show_command = "git show %s:%s" % (commit, filename)
         ret, file_content = run_command(git_show_command, path)
@@ -104,6 +121,11 @@ class SVN(RCS):
     """ SVN Revision Control System class """
 
     def show_file(self, path, commit, filename):
+
+        # Use current working copy
+        if commit is None:
+            return super(SVN, self).show_file(path, commit, filename) 
+        
         # Execute 'svn cat' command and return content or empty string
         svn_cat_command = "svn cat -r %s %s" % (commit, filename)
         ret, file_content = run_command(svn_cat_command, path)
