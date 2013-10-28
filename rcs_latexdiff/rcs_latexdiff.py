@@ -97,19 +97,19 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
     logger.info("Get new content (commit %s)..." % new_commit)
     new_content = get_file(rcs, root_path, relative_path, new_commit, src_filename)
 
-    # Write files (in same folder as src_filename)
-    old_filename = os.path.join(root_path, relative_path, dst_filename + ".old")
-    new_filename = os.path.join(root_path, relative_path, dst_filename + ".new")
-    diff_filename = os.path.join(root_path, relative_path, dst_filename)
+    # Write files (in same folder as dst_filename)
+    dst_path = os.path.dirname(os.path.abspath(dst_filename))
+    old_filename = os.path.join(dst_path, os.path.basename(dst_filename) + ".old")
+    new_filename = os.path.join(dst_path, os.path.basename(dst_filename) + ".new")
 
     write_file(old_content, old_filename)
     write_file(new_content, new_filename)
 
     # Exec diff
     logger.info("Execute latexdiff")
-    exec_diff(old_filename, new_filename, diff_filename)
+    exec_diff(old_filename, new_filename, dst_filename)
 
-    return diff_filename, old_filename, new_filename
+    return dst_filename, old_filename, new_filename
 
 
 def parse_arguments():
@@ -123,9 +123,10 @@ def parse_arguments():
         dest='makepdf',
         help='Don\'t try to run pdflatex on the diff file.')
 
-    parser.add_argument('-o', '--output', dest='output', default='diff.tex',
+    parser.add_argument('-o', '--output', dest='output',
         help='Name of the generated diff file. If not specified, '
-             'default output will be "diff.tex" in the current path.')
+             'default output will be "diff.tex" in the path of '
+             'the file you are comparing.')
 
     parser.add_argument('-v', '--verbose', action='store_const',
         const=logging.INFO, dest='verbosity',
@@ -214,9 +215,15 @@ def main():
         if not rcs.is_commit(root_path, commit):
             logger.info("Commit does not exist: %s" % (commit))
             exit(1)
+            
+    # Populate the default output file
+    if args.output is None:
+        dst_filename = os.path.join(root_path, relative_path, 'diff.tex')
+    else:
+        dst_filename = args.output
 
     # Make the diff
-    generated_files = make_diff(rcs, args.OLD, args.NEW, root_path, relative_path, filename, args.output)
+    generated_files = make_diff(rcs, args.OLD, args.NEW, root_path, relative_path, filename, dst_filename)
 
     # Make the pdf
     if args.makepdf:
