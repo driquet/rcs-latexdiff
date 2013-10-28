@@ -3,6 +3,8 @@ import argparse
 import logging
 import os
 import glob
+import sys
+import subprocess
 
 from rcs import get_rcs_class
 from utils import run_command, write_file
@@ -70,6 +72,14 @@ def exec_diff(old_filename, new_filename, diff_filename):
     run_command("latexdiff %s %s > %s" % (old_filename, new_filename, diff_filename))
 
 def exec_pdflatex(tex_filename, src_path):
+    """
+    Exect pdflatex
+    
+    :param tex_filename: File name of the .tex to compile.
+    :param src_path: Path from which pdflatex will be called (this should
+        make most figures work).
+    :return: PDF file name.
+    """
     
     tex_path = os.path.dirname(tex_filename)    
     
@@ -100,13 +110,31 @@ def exec_pdflatex(tex_filename, src_path):
     except:
         logger.debug("Problem building pdf file.")
     
-    # Return to orig directory
+    # Return to original directory
     os.chdir(starting_dir)    
     
     return pdf_filename
     
 def open_pdf(pdf_filename):
-    pass
+    """
+    Opens the given file in the default PDF viewing program.
+    
+    :param pdf_filename: PDF file to open.
+    """
+
+    # Only the 'posix' case hase been tested...
+    if sys.platform.startswith('darwin'):
+        # MAC OS
+        subprocess.Popen(('open', pdf_filename))
+    elif os.name == 'nt':
+        # Windows
+        os.startfile(pdf_filename)
+    elif os.name == 'posix':
+        # Linux
+        with open('/dev/null') as output:
+            # When my pdf viewer closes, it spits out some errors or something I 
+            # don't care about, so make stderr not inherit from this thread.
+            subprocess.Popen(('xdg-open', pdf_filename),stdout=output,stderr=subprocess.STDOUT)
 
 def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filename, dst_filename):
     # TODO docs path root and relative
@@ -153,7 +181,7 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
 def parse_arguments():
     parser = argparse.ArgumentParser(description='A tool to generate LaTeX Diff between two Revision Control System commits of a file.')
 
-    parser.add_argument('--clean', action='store_true',
+    parser.add_argument('--dirty', action='store_false',
         dest='clean',
         help='Clean all files except the generated diff file.')
         
@@ -209,7 +237,7 @@ def clean_output_files(files):
     for filename in files:
         try:
             os.remove(filename)
-            logger.debug("Removed file: %s" % filename)
+            logger.info("Removed file: %s" % filename)
         except OSError:
             logger.debug("Could not remove file: %s" % filename)
 
