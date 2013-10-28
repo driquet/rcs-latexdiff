@@ -159,8 +159,11 @@ def clean_output_files(files):
 
     """
     for filename in files:
-        logger.debug("Removing file: %s" % filename)
-        os.remove(filename)
+        try:
+            os.remove(filename)
+            logger.debug("Removed file: %s" % filename)
+        except OSError:
+            logger.debug("Could not remove file: %s" % filename)
 
 def check_latexdiff():
     """ Check that latexdiff binary is in the PATH """
