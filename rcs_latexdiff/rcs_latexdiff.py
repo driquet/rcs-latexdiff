@@ -2,6 +2,7 @@ import re
 import argparse
 import logging
 import os
+import glob
 
 from rcs import get_rcs_class
 from utils import run_command, write_file
@@ -68,7 +69,44 @@ def exec_diff(old_filename, new_filename, diff_filename):
     """
     run_command("latexdiff %s %s > %s" % (old_filename, new_filename, diff_filename))
 
-
+def exec_pdflatex(tex_filename, src_path):
+    
+    tex_path = os.path.dirname(tex_filename)    
+    
+    aux_filename = os.path.splitext(tex_filename)[0] + ".aux"
+    pdf_filename = os.path.splitext(tex_filename)[0] + ".pdf"
+    
+    # We enter the folder of the source to get proper relative paths to 
+    # figures
+    starting_dir = os.getcwd()
+    os.chdir(src_path)
+    
+    def single_run():
+        run_command("pdflatex -interaction nonstopmode -output-directory {} {}".format(tex_path, tex_filename))
+    
+    # Run pdflatex and bibtex a bunch of times
+    try:
+        single_run()
+        single_run()
+        
+        if os.path.isfile(aux_filename):
+            run_command("bibtex %s" % tex_filename)
+            run_command("bibtex %s" % aux_filename)
+            
+        single_run()
+        single_run()
+        
+        logger.info("Ran pdflatex and bibtex.")
+    except:
+        logger.debug("Problem building pdf file.")
+    
+    # Return to orig directory
+    os.chdir(starting_dir)    
+    
+    return pdf_filename
+    
+def open_pdf(pdf_filename):
+    pass
 
 def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filename, dst_filename):
     # TODO docs path root and relative
@@ -122,6 +160,10 @@ def parse_arguments():
     parser.add_argument('--no-pdf', action='store_false',
         dest='makepdf',
         help='Don\'t try to run pdflatex on the diff file.')
+        
+    parser.add_argument('--no-open', action='store_false',
+        dest='openpdf',
+        help='Don\'t try to open the created pdf file.')
 
     parser.add_argument('-o', '--output', dest='output',
         help='Name of the generated diff file. If not specified, '
@@ -223,15 +265,24 @@ def main():
         dst_filename = args.output
 
     # Make the diff
-    generated_files = make_diff(rcs, args.OLD, args.NEW, root_path, relative_path, filename, dst_filename)
+    make_diff(rcs, args.OLD, args.NEW, root_path, relative_path, filename, dst_filename)
 
     # Make the pdf
     if args.makepdf:
-        pass
+        pdf_filename = exec_pdflatex(dst_filename, os.path.join(root_path, relative_path))
+        
+    # Open the pdf
+    if args.openpdf:
+        open_pdf(pdf_filename)
 
     # Clean output files
     if args.clean:
-        clean_output_files(generated_files[1:])
+        # Clean everything except diff.pdf or diff.tex depending on makepdf
+        clean_glob = glob.glob(os.path.splitext(dst_filename)[0] + '.*')
+        keep_ext = 'pdf' if args.makepdf else 'tex'
+        clean_glob = [f for f in clean_glob if f[-3:] != keep_ext]
+        
+        clean_output_files(clean_glob)
 
 
 if __name__ == '__main__':
