@@ -338,9 +338,9 @@ def main():
     if args.makepdf:
         pdf_filename = exec_pdflatex(dst_filename, os.path.join(root_path, relative_path))
 
-    # Open the pdf
-    if args.openpdf:
-        open_pdf(pdf_filename)
+        # Open the pdf
+        if args.openpdf:
+            open_pdf(pdf_filename)
 
     # Clean output files
     if args.clean:
