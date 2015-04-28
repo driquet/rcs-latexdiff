@@ -84,6 +84,8 @@ def exec_pdflatex(tex_filename, src_path):
     """
 
     tex_path = os.path.dirname(tex_filename)
+    if tex_path == '':
+        tex_path = '.'
 
     aux_filename = os.path.splitext(tex_filename)[0] + ".aux"
     pdf_filename = os.path.splitext(tex_filename)[0] + ".pdf"
@@ -93,7 +95,6 @@ def exec_pdflatex(tex_filename, src_path):
     starting_dir = os.getcwd()
     if src_path != '':
         os.chdir(src_path)
-    return
 
     def single_run():
         run_command("pdflatex -interaction nonstopmode -output-directory {} {}".format(tex_path, tex_filename))
@@ -106,18 +107,16 @@ def exec_pdflatex(tex_filename, src_path):
         if os.path.isfile(aux_filename):
             run_command("bibtex %s" % tex_filename)
             run_command("bibtex %s" % aux_filename)
-
         single_run()
         single_run()
-
         logger.info("Ran pdflatex and bibtex.")
     except:
         logger.debug("Problem building pdf file.")
 
     # Return to original directory
     os.chdir(starting_dir)
-
     return pdf_filename
+
 
 def open_pdf(pdf_filename):
     """
@@ -125,7 +124,6 @@ def open_pdf(pdf_filename):
 
     :param str pdf_filename: PDF file to open.
     """
-
     # Only the 'posix' case hase been tested...
     if sys.platform.startswith('darwin'):
         os_str = "Mac OS"
