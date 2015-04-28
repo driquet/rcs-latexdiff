@@ -12,6 +12,7 @@ from utils import run_command, write_file
 
 logger = logging.getLogger("rcs-latexdiff")
 
+
 def get_file(rcs, root_path, relative_path, commit, filename):
     # TODO docs path root and relative
     """ Process a File that includes
@@ -37,7 +38,6 @@ def get_file(rcs, root_path, relative_path, commit, filename):
     external_inputs = re.findall("\\\(?:input|include)\{.*\}",file_content)
 
     for external_input in external_inputs:
-
 
         # For each external input, find the name of the file, read it and replace it in the original content
         input_name = re.search("\{(.*)\}", external_input).group(1)
@@ -72,6 +72,7 @@ def exec_diff(old_filename, new_filename, diff_filename, latexdiff_args=""):
     """
     run_command("latexdiff %s %s %s > %s" % (latexdiff_args, old_filename, new_filename, diff_filename))
 
+
 def exec_pdflatex(tex_filename, src_path):
     """
     Exect pdflatex
@@ -90,7 +91,9 @@ def exec_pdflatex(tex_filename, src_path):
     # We enter the folder of the source to get proper relative paths to
     # figures
     starting_dir = os.getcwd()
-    os.chdir(src_path)
+    if src_path != '':
+        os.chdir(src_path)
+    return
 
     def single_run():
         run_command("pdflatex -interaction nonstopmode -output-directory {} {}".format(tex_path, tex_filename))
@@ -291,10 +294,8 @@ You can install it as follows:
         apt-get install latexdiff
     MacPorts (OS X):
         sudo port install latexdiff
-"""
+ """
         exit(1)
-
-
 
 
 def main():
