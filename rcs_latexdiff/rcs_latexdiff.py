@@ -12,6 +12,7 @@ from utils import run_command, write_file
 
 logger = logging.getLogger("rcs-latexdiff")
 
+
 def get_file(rcs, root_path, relative_path, commit, filename):
     # TODO docs path root and relative
     """ Process a File that includes
@@ -37,7 +38,6 @@ def get_file(rcs, root_path, relative_path, commit, filename):
     external_inputs = re.findall("\\\(?:input|include)\{.*\}",file_content)
 
     for external_input in external_inputs:
-
 
         # For each external input, find the name of the file, read it and replace it in the original content
         input_name = re.search("\{(.*)\}", external_input).group(1)
@@ -72,6 +72,7 @@ def exec_diff(old_filename, new_filename, diff_filename, latexdiff_args=""):
     """
     run_command("latexdiff %s %s %s > %s" % (latexdiff_args, old_filename, new_filename, diff_filename))
 
+
 def exec_pdflatex(tex_filename, src_path):
     """
     Exect pdflatex
@@ -83,6 +84,8 @@ def exec_pdflatex(tex_filename, src_path):
     """
 
     tex_path = os.path.dirname(tex_filename)
+    if tex_path == '':
+        tex_path = '.'
 
     aux_filename = os.path.splitext(tex_filename)[0] + ".aux"
     pdf_filename = os.path.splitext(tex_filename)[0] + ".pdf"
@@ -90,7 +93,8 @@ def exec_pdflatex(tex_filename, src_path):
     # We enter the folder of the source to get proper relative paths to
     # figures
     starting_dir = os.getcwd()
-    os.chdir(src_path)
+    if src_path != '':
+        os.chdir(src_path)
 
     def single_run():
         run_command("pdflatex -interaction nonstopmode -output-directory {} {}".format(tex_path, tex_filename))
@@ -103,18 +107,16 @@ def exec_pdflatex(tex_filename, src_path):
         if os.path.isfile(aux_filename):
             run_command("bibtex %s" % tex_filename)
             run_command("bibtex %s" % aux_filename)
-
         single_run()
         single_run()
-
         logger.info("Ran pdflatex and bibtex.")
     except:
         logger.debug("Problem building pdf file.")
 
     # Return to original directory
     os.chdir(starting_dir)
-
     return pdf_filename
+
 
 def open_pdf(pdf_filename):
     """
@@ -122,7 +124,6 @@ def open_pdf(pdf_filename):
 
     :param str pdf_filename: PDF file to open.
     """
-
     # Only the 'posix' case hase been tested...
     if sys.platform.startswith('darwin'):
         os_str = "Mac OS"
@@ -291,10 +292,8 @@ You can install it as follows:
         apt-get install latexdiff
     MacPorts (OS X):
         sudo port install latexdiff
-"""
+ """
         exit(1)
-
-
 
 
 def main():
@@ -339,9 +338,9 @@ def main():
     if args.makepdf:
         pdf_filename = exec_pdflatex(dst_filename, os.path.join(root_path, relative_path))
 
-    # Open the pdf
-    if args.openpdf:
-        open_pdf(pdf_filename)
+        # Open the pdf
+        if args.openpdf:
+            open_pdf(pdf_filename)
 
     # Clean output files
     if args.clean:
