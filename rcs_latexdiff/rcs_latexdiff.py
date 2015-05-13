@@ -91,22 +91,10 @@ def exec_pdflatex(tex_filename, src_path):
     starting_dir = os.getcwd()
     os.chdir(src_path)
     
-    def single_run():
-        run_command("pdflatex -interaction nonstopmode -output-directory {} {}".format(tex_path, tex_filename))
-    
     # Run pdflatex and bibtex a bunch of times
     try:
-        single_run()
-        single_run()
-        
-        if os.path.isfile(aux_filename):
-            run_command("bibtex %s" % tex_filename)
-            run_command("bibtex %s" % aux_filename)
-            
-        single_run()
-        single_run()
-        
-        logger.info("Ran pdflatex and bibtex.")
+        run_command("latexmk -pdf -output-directory={} {}".format(tex_path, tex_filename))
+        logger.info("Ran latexmk on {} outputting to {}".format(tex_filename, tex_path))
     except:
         logger.debug("Problem building pdf file.")
     
@@ -327,6 +315,8 @@ def main():
     # Make the pdf
     if args.makepdf:
         pdf_filename = exec_pdflatex(dst_filename, os.path.join(root_path, relative_path))
+    else:
+        pdf_filename = os.path.splitext(dst_filename)[0] + ".pdf"
         
     # Open the pdf
     if args.openpdf:
