@@ -61,7 +61,7 @@ def get_file(rcs, root_path, relative_path, commit, filename):
     return file_content
 
 
-def exec_diff(old_filename, new_filename, diff_filename):
+def exec_diff(old_filename, new_filename, diff_filename, latexdiff_args):
     """ Exec Latexdiff
 
         :param old_filename:
