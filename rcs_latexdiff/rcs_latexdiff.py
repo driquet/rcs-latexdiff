@@ -67,9 +67,11 @@ def exec_diff(old_filename, new_filename, diff_filename):
         :param old_filename:
         :param new_filename:
         :param diff_filename:
+        :param latexdiff_args:
 
     """
-    run_command("latexdiff %s %s > %s" % (old_filename, new_filename, diff_filename))
+    run_command("latexdiff %s %s %s > %s" % (latexdiff_args, old_filename, new_filename, diff_filename))
+
 
 def exec_pdflatex(tex_filename, src_path):
     """
@@ -80,9 +82,11 @@ def exec_pdflatex(tex_filename, src_path):
         make most figures work).
     :return: PDF file name.
     """
-    
-    tex_path = os.path.dirname(tex_filename)    
-    
+
+    tex_path = os.path.dirname(tex_filename)
+    if tex_path == '':
+        tex_path = '.'
+
     aux_filename = os.path.splitext(tex_filename)[0] + ".aux"
     pdf_filename = os.path.splitext(tex_filename)[0] + ".pdf"
     
@@ -99,8 +103,7 @@ def exec_pdflatex(tex_filename, src_path):
         logger.debug("Problem building pdf file.")
     
     # Return to original directory
-    os.chdir(starting_dir)    
-    
+    os.chdir(starting_dir)
     return pdf_filename
     
 def open_pdf(pdf_filename):
@@ -126,7 +129,7 @@ def open_pdf(pdf_filename):
             
     logger.info("Opened in default {} PDF viewer: {}".format(os_str, pdf_filename))
 
-def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filename, dst_filename):
+def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filename, dst_filename, latexdiff_args):
     # TODO docs path root and relative
     """ Make a diff for a name between two commits
 
@@ -137,6 +140,7 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
         :param path: path of the repository
         :param src_filename: name of the file
         :param dst_filename: name of the output file
+        :param latexdiff_args: args to pass through to latexdiff
         :return: destination file and temporary files
 
     """
@@ -163,7 +167,7 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
 
     # Exec diff
     logger.info("Execute latexdiff")
-    exec_diff(old_filename, new_filename, dst_filename)
+    exec_diff(old_filename, new_filename, dst_filename, latexdiff_args)
 
     return dst_filename, old_filename, new_filename
 
@@ -171,8 +175,8 @@ def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filenam
 def parse_arguments():
 
     description = """\
-A tool to generate LaTeX Diff between two Revision 
-Control System commits of a file, compile the resulting .tex, and 
+A tool to generate LaTeX Diff between two Revision
+Control System commits of a file, compile the resulting .tex, and
 display it."""
     
     epilog = """\
@@ -207,6 +211,10 @@ EXAMPLE USAGE:
         dest='openpdf',
         help='Don\'t try to open the created pdf file.')
 
+    parser.add_argument('--utf8', action='store_true',
+        dest='utf8',
+        help='Pass "--encoding=utf8" to latexdiff.')
+
     parser.add_argument('-o', '--output', dest='output',
         help='Name of the generated diff file. If not specified, '
              'default output will be "diff.tex" in the path of '
@@ -224,7 +232,7 @@ EXAMPLE USAGE:
 
     parser.add_argument('OLD', help='Old commit (SHA1 or branch name).')
 
-    parser.add_argument('NEW', 
+    parser.add_argument('NEW',
         help='New commit (SHA1 or branch name). If omitted, '
         'will use the current working copy as NEW.',
         nargs='?')
@@ -309,18 +317,21 @@ def main():
     else:
         dst_filename = args.output
 
+    # Gather arguments to pass through to latexdiff
+    latexdiff_args = ''
+    if args.utf8:
+        latexdiff_args += '--encoding=utf8 '
+
     # Make the diff
-    make_diff(rcs, args.OLD, args.NEW, root_path, relative_path, filename, dst_filename)
+    make_diff(rcs, args.OLD, args.NEW, root_path, relative_path, filename, dst_filename, latexdiff_args)
 
     # Make the pdf
     if args.makepdf:
         pdf_filename = exec_pdflatex(dst_filename, os.path.join(root_path, relative_path))
-    else:
-        pdf_filename = os.path.splitext(dst_filename)[0] + ".pdf"
-        
-    # Open the pdf
-    if args.openpdf:
-        open_pdf(pdf_filename)
+
+        # Open the pdf
+        if args.openpdf:
+            open_pdf(pdf_filename)
 
     # Clean output files
     if args.clean:
