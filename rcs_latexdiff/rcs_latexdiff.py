@@ -5,6 +5,7 @@ import os
 import glob
 import sys
 import subprocess
+import distutils.spawn
 
 from rcs import get_rcs_class
 from utils import run_command, write_file
@@ -72,10 +73,18 @@ def exec_diff(old_filename, new_filename, diff_filename, latexdiff_args):
     """
     run_command("latexdiff %s %s %s > %s" % (latexdiff_args, old_filename, new_filename, diff_filename))
 
-
-def exec_pdflatex(tex_filename, src_path):
+def has_latexmk():
     """
-    Exect pdflatex
+    Decides whether or not latexmk exists on this system.
+
+    :return: true or false
+    """
+    return distutils.spawn.find_executable("latexmk")
+
+def exec_latexmk(tex_filename, src_path):
+    """
+    Exect latexmk. With -pdf option, this runs pdflatex and bibtex 
+    enough times until all cross-references have been sorted out.
     
     :param tex_filename: File name of the .tex to compile.
     :param src_path: Path from which pdflatex will be called (this should
@@ -102,6 +111,51 @@ def exec_pdflatex(tex_filename, src_path):
     except:
         logger.debug("Problem building pdf file.")
     
+    # Return to original directory
+    os.chdir(starting_dir)
+    return pdf_filename
+
+
+def exec_pdflatex(tex_filename, src_path):
+    """
+    Exect pdflatex
+    :param tex_filename: File name of the .tex to compile.
+    :param src_path: Path from which pdflatex will be called (this should
+    make most figures work).
+    :return: PDF file name.
+    """
+    tex_path = os.path.dirname(tex_filename)
+    if tex_path == '':
+        tex_path = '.'
+
+    aux_filename = os.path.splitext(tex_filename)[0] + ".aux"
+    pdf_filename = os.path.splitext(tex_filename)[0] + ".pdf"
+
+    # We enter the folder of the source to get proper relative paths to
+    # figures
+    starting_dir = os.getcwd()
+    if src_path != '':
+        os.chdir(src_path)
+
+    def single_run():
+        run_command("pdflatex -interaction nonstopmode -output-directory {} {}".format(tex_path, tex_filename))
+
+    # Run pdflatex and bibtex a bunch of times
+    try:
+        single_run()
+        single_run()
+
+        if os.path.isfile(aux_filename):
+            run_command("bibtex %s" % tex_filename)
+            run_command("bibtex %s" % aux_filename)
+
+        single_run()
+        single_run()
+
+        logger.info("Ran pdflatex and bibtex.")
+    except:
+        logger.debug("Problem building pdf file.")
+
     # Return to original directory
     os.chdir(starting_dir)
     return pdf_filename
@@ -327,7 +381,11 @@ def main():
 
     # Make the pdf
     if args.makepdf:
-        pdf_filename = exec_pdflatex(dst_filename, os.path.join(root_path, relative_path))
+        if has_latexmk():
+            pdf_filename = exec_latexmk(dst_filename, os.path.join(root_path, relative_path))
+        else:
+            logger.info("latexmk wasn't found...using pdflatex and bibtex")
+            pdf_filename = exec_pdflatex(dst_filename, os.path.join(root_path, relative_path))
 
         # Open the pdf
         if args.openpdf:
