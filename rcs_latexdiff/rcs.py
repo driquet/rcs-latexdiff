@@ -162,7 +162,7 @@ class SVN(RCS):
         # So we don't differentiate root and relative paths
 
         # Get the root path of the repository
-        root_path = os.path.dirname(filename)
+        root_path = os.path.dirname(os.path.abspath(filename))
 
         relative_path = ""
         filename = os.path.basename(filename)

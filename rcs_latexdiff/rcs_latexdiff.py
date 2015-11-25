@@ -173,7 +173,7 @@ def open_pdf(pdf_filename):
         subprocess.Popen(('open', pdf_filename))
     elif os.name == 'nt':
         os_str = "Windows"
-        os.startfile(pdf_filename)
+        os.system("start "+pdf_filename)
     elif os.name == 'posix':
         os_str = "Linux"
         with open('/dev/null') as output:
@@ -322,7 +322,7 @@ def clean_output_files(files):
 
 def check_latexdiff():
     """ Check that latexdiff binary is in the PATH """
-    check_latexdiff = "which latexdiff"
+    check_latexdiff = ("where" if sys.platform == "win32" else "which") + " latexdiff"
     ret, output = run_command(check_latexdiff)
 
     # latexdiff tool not available ?
