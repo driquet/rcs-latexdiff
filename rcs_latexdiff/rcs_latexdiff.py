@@ -106,7 +106,7 @@ def exec_latexmk(tex_filename, src_path):
     
     # Run pdflatex and bibtex a bunch of times
     try:
-        run_command("latexmk -pdf -output-directory={} {}".format(tex_path, tex_filename))
+        run_command("latexmk -pdf -interaction=nonstopmode -output-directory={} {}".format(tex_path, tex_filename))
         logger.info("Ran latexmk on {} outputting to {}".format(tex_filename, tex_path))
     except:
         logger.debug("Problem building pdf file.")
