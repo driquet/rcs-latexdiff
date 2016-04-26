@@ -50,6 +50,9 @@ You could also use branch names.
 For example, to compare a version submitted to a conference and the final version::
     $ rcs-latexdiff paper.tex submission-version camera-ready-version
 
+If you want a diff between changes in the current working directory and the last commit, you can do::
+
+    $ rcs-latexdiff paper.tex HEAD
 
 Troubles
 --------
