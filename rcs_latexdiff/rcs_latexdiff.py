@@ -102,7 +102,8 @@ def exec_latexmk(tex_filename, src_path):
     # We enter the folder of the source to get proper relative paths to 
     # figures
     starting_dir = os.getcwd()
-    os.chdir(src_path)
+    if src_path != '':
+        os.chdir(src_path)
     
     # Run pdflatex and bibtex a bunch of times
     try:
