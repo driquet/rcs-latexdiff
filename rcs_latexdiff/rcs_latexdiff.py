@@ -8,7 +8,7 @@ import subprocess
 import distutils.spawn
 
 from rcs import get_rcs_class
-from utils import run_command, write_file
+from utils import run_command, write_file, remove_latex_comments
 
 
 logger = logging.getLogger("rcs-latexdiff")
@@ -34,8 +34,12 @@ def get_file(rcs, root_path, relative_path, commit, filename):
     # Read the file
     file_content = rcs.show_file(root_path, commit, os.path.join(relative_path, filename))
 
+    # Remove all latex comments
+    file_content = remove_latex_comments(file_content)
+
     # Look for external inputs
-    external_inputs = re.findall("\\\(?:input|include)\{.*\}",file_content)
+    external_inputs = re.findall(r"\\(?:input|include)\{[^\}]*\}",file_content)
+    logger.info("Found {} instances of \\include{{}} or \\input{{}} in {}".format(len(external_inputs), filename))
 
     for external_input in external_inputs:
 
@@ -43,11 +47,17 @@ def get_file(rcs, root_path, relative_path, commit, filename):
         # For each external input, find the name of the file, read it and replace it in the original content
         input_name = re.search("\{(.*)\}", external_input).group(1)
 
-        if not input_name.endswith(".tex"):
-            input_name += ".tex"
-
         # Read the content of the input
-        input_content = get_file(rcs, root_path, relative_path, commit, input_name)
+        logger.info("Inserting {}...".format(input_name))
+        try:
+            input_content = get_file(rcs, root_path, relative_path, commit, input_name)
+        except IOError:
+            input_name += ".tex"
+            logger.info("Inserting {}...".format(input_name))
+            input_content = get_file(rcs, root_path, relative_path, commit, input_name)
+        except:
+            logger.info("Could not find {}, ignoring and hoping for the best.".format(os.path.join(root_path, relative_path, input_name)))
+            input_content = ''
 
         # Add delimiters
         begin_delimiter = "%% Input %s" % input_name
