@@ -1,5 +1,6 @@
 import subprocess
 import logging
+import re
 
 logger = logging.getLogger("rcs-latexdiff.utils")
 
@@ -40,3 +41,7 @@ def write_file(content, filename):
     logger.debug("Writing content into %s" % filename)
     with open(filename, 'w') as f:
         f.write(content)
+
+def remove_latex_comments(content):
+    # Remove all content which follows a % except if % is preceded by \
+    return re.sub(r'(?<!\\)%.*', '', content)

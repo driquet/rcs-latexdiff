@@ -28,6 +28,7 @@ class RCS(object):
                 return contents
             except IOError:
                 logger.debug("Error reading working copy: {}".format(os.path.join(path, filename)))
+                raise IOError("Error reading working copy: {}".format(os.path.join(path, filename)))
 
     def is_valid_directory(self, path):
         """ Return wheter or not the directory is a valid RCS repository
