@@ -93,9 +93,9 @@ def has_latexmk():
 
 def exec_latexmk(tex_filename, src_path):
     """
-    Exect latexmk. With -pdf option, this runs pdflatex and bibtex 
+    Exect latexmk. With -pdf option, this runs pdflatex and bibtex
     enough times until all cross-references have been sorted out.
-    
+
     :param tex_filename: File name of the .tex to compile.
     :param src_path: Path from which pdflatex will be called (this should
         make most figures work).
@@ -108,20 +108,20 @@ def exec_latexmk(tex_filename, src_path):
 
     aux_filename = os.path.splitext(tex_filename)[0] + ".aux"
     pdf_filename = os.path.splitext(tex_filename)[0] + ".pdf"
-    
-    # We enter the folder of the source to get proper relative paths to 
+
+    # We enter the folder of the source to get proper relative paths to
     # figures
     starting_dir = os.getcwd()
     if src_path != '':
         os.chdir(src_path)
-    
+
     # Run pdflatex and bibtex a bunch of times
     try:
         run_command("latexmk -pdf -output-directory={} {}".format(tex_path, tex_filename))
         logger.info("Ran latexmk on {} outputting to {}".format(tex_filename, tex_path))
     except:
         logger.debug("Problem building pdf file.")
-    
+
     # Return to original directory
     os.chdir(starting_dir)
     return pdf_filename
@@ -170,11 +170,11 @@ def exec_pdflatex(tex_filename, src_path):
     # Return to original directory
     os.chdir(starting_dir)
     return pdf_filename
-    
+
 def open_pdf(pdf_filename):
     """
     Opens the given file in the default PDF viewing program.
-    
+
     :param str pdf_filename: PDF file to open.
     """
 
@@ -188,10 +188,10 @@ def open_pdf(pdf_filename):
     elif os.name == 'posix':
         os_str = "Linux"
         with open('/dev/null') as output:
-            # When my pdf viewer closes, it spits out some errors or something I 
+            # When my pdf viewer closes, it spits out some errors or something I
             # don't care about, so make stderr not inherit from this thread.
             subprocess.Popen(('xdg-open', pdf_filename),stdout=output,stderr=subprocess.STDOUT)
-            
+
     logger.info("Opened in default {} PDF viewer: {}".format(os_str, pdf_filename))
 
 def make_diff(rcs, old_commit, new_commit, root_path, relative_path, src_filename, dst_filename, latexdiff_args):
@@ -243,38 +243,42 @@ def parse_arguments():
 A tool to generate LaTeX Diff between two Revision
 Control System commits of a file, compile the resulting .tex, and
 display it."""
-    
+
     epilog = """\
 EXAMPLE USAGE:
-    
+
     rcs-latexdiff document.tex HEAD
         Display the latexdiff'd PDF of the current working version of
         document.tex compared to the HEAD of the Git repository.
-    
+
     rcs-latexdiff document.tex master adivsor
         Display the latexdiff'd PDF of the changes in the "advisor" branch
         compared to the master branch.
-        
+
     rcs-latexdiff --no-open -o /home/myself/thediff.tex git/repo/doc.tex HEAD^^ HEAD
-        Create (but don't open) the difference between the HEAD and the 
-        grandparent of HEAD as /home/myself/thediff.pdf using the git 
+        Create (but don't open) the difference between the HEAD and the
+        grandparent of HEAD as /home/myself/thediff.pdf using the git
         repo git/repo
-        
+
 """
-    
+
     parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--dirty', action='store_false',
         dest='clean',
         help='Don\'t clean up files generated along the way (.aux, .log, etc).')
-        
+
     parser.add_argument('--no-pdf', action='store_false',
         dest='makepdf',
         help='Don\'t try to run pdflatex on the diff file.')
-        
+
     parser.add_argument('--no-open', action='store_false',
         dest='openpdf',
         help='Don\'t try to open the created pdf file.')
+
+    parser.add_argument('--force-pdflatex', action='store_true',
+        dest='forcepdflatex',
+        help='Use pdflatex even if latexmk is present.')
 
     parser.add_argument('--utf8', action='store_true',
         dest='utf8',
@@ -375,7 +379,7 @@ def main():
         if not rcs.is_commit(root_path, commit) and commit is not None:
             logger.info("Commit does not exist: %s" % (commit))
             exit(1)
-            
+
     # Populate the default output file
     if args.output is None:
         dst_filename = os.path.join(root_path, relative_path, 'diff.tex')
@@ -392,10 +396,14 @@ def main():
 
     # Make the pdf
     if args.makepdf:
-        if has_latexmk():
+        if has_latexmk() and not args.forcepdflatex:
+            logger.info("Proceeding with latexmk.")
             pdf_filename = exec_latexmk(dst_filename, os.path.join(root_path, relative_path))
         else:
-            logger.info("latexmk wasn't found...using pdflatex and bibtex")
+            if args.forcepdflatex:\
+                logger.info("latexmk found but you said not to use it...using pdflatex and bibtex")
+            else:
+                logger.info("latexmk wasn't found...using pdflatex and bibtex")
             pdf_filename = exec_pdflatex(dst_filename, os.path.join(root_path, relative_path))
 
         # Open the pdf
@@ -408,7 +416,7 @@ def main():
         clean_glob = glob.glob(os.path.splitext(dst_filename)[0] + '.*')
         keep_ext = 'pdf' if args.makepdf else 'tex'
         clean_glob = [f for f in clean_glob if f[-3:] != keep_ext]
-        
+
         clean_output_files(clean_glob)
 
 
