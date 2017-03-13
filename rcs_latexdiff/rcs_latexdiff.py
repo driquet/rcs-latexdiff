@@ -117,7 +117,7 @@ def exec_latexmk(tex_filename, src_path):
 
     # Run pdflatex and bibtex a bunch of times
     try:
-        run_command("latexmk -pdf -output-directory={} {}".format(tex_path, tex_filename))
+        run_command("latexmk -pdf -interaction=nonstopmode -output-directory={} {}".format(tex_path, tex_filename))
         logger.info("Ran latexmk on {} outputting to {}".format(tex_filename, tex_path))
     except:
         logger.debug("Problem building pdf file.")
@@ -184,7 +184,7 @@ def open_pdf(pdf_filename):
         subprocess.Popen(('open', pdf_filename))
     elif os.name == 'nt':
         os_str = "Windows"
-        os.startfile(pdf_filename)
+        os.system("start "+pdf_filename)
     elif os.name == 'posix':
         os_str = "Linux"
         with open('/dev/null') as output:
@@ -341,7 +341,7 @@ def clean_output_files(files):
 
 def check_latexdiff():
     """ Check that latexdiff binary is in the PATH """
-    check_latexdiff = "which latexdiff"
+    check_latexdiff = ("where" if sys.platform == "win32" else "which") + " latexdiff"
     ret, output = run_command(check_latexdiff)
 
     # latexdiff tool not available ?
