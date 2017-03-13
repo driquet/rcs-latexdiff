@@ -387,7 +387,7 @@ def main():
         dst_filename = args.output
 
     # Gather arguments to pass through to latexdiff
-    latexdiff_args = ''
+    latexdiff_args = '--exclude-textcmd="section,subsection" '
     if args.utf8:
         latexdiff_args += '--encoding=utf8 '
 
