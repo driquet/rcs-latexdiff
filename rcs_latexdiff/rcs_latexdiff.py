@@ -277,8 +277,12 @@ EXAMPLE USAGE:
         help='Don\'t try to open the created pdf file.')
 
     parser.add_argument('--force-pdflatex', action='store_true',
-        dest='forcepdflatex',
+        dest='force_pdflatex',
         help='Use pdflatex even if latexmk is present.')
+
+    parser.add_argument('--exclude-section-titles', action='store_true',
+        dest='exclude_sections',
+        help='Tells latexdiff to exclude diffs inside sub/section titles, which sometimes cause latex build problems.')
 
     parser.add_argument('--utf8', action='store_true',
         dest='utf8',
@@ -387,7 +391,9 @@ def main():
         dst_filename = args.output
 
     # Gather arguments to pass through to latexdiff
-    latexdiff_args = '--exclude-textcmd="section,subsection" '
+    latexdiff_args = ''
+    if args.exclude_sections:
+        latexdiff_args += '--exclude-textcmd="section,subsection" '
     if args.utf8:
         latexdiff_args += '--encoding=utf8 '
 
@@ -396,11 +402,11 @@ def main():
 
     # Make the pdf
     if args.makepdf:
-        if has_latexmk() and not args.forcepdflatex:
+        if has_latexmk() and not args.force_pdflatex:
             logger.info("Proceeding with latexmk.")
             pdf_filename = exec_latexmk(dst_filename, os.path.join(root_path, relative_path))
         else:
-            if args.forcepdflatex:\
+            if args.force_pdflatex:
                 logger.info("latexmk found but you said not to use it...using pdflatex and bibtex")
             else:
                 logger.info("latexmk wasn't found...using pdflatex and bibtex")
