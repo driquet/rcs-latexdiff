@@ -93,7 +93,7 @@ def has_latexmk():
     """
     return distutils.spawn.find_executable("latexmk")
 
-def exec_latexmk(tex_filename, src_path):
+def exec_latexmk(tex_filename, src_path, repeat=1):
     """
     Exect latexmk. With -pdf option, this runs pdflatex and bibtex
     enough times until all cross-references have been sorted out.
@@ -119,7 +119,10 @@ def exec_latexmk(tex_filename, src_path):
 
     # Run pdflatex and bibtex a bunch of times
     try:
-        run_command("latexmk -pdf -interaction=nonstopmode -output-directory={} {}".format(tex_path, tex_filename))
+        for k in range(repeat):
+            run_command(
+                "latexmk -pdf -interaction=nonstopmode -output-directory={} {}".format(tex_path, tex_filename)
+            )
         logger.info("Ran latexmk on {} outputting to {}".format(tex_filename, tex_path))
     except:
         logger.debug("Problem building pdf file.")
@@ -129,7 +132,7 @@ def exec_latexmk(tex_filename, src_path):
     return pdf_filename
 
 
-def exec_pdflatex(tex_filename, src_path):
+def exec_pdflatex(tex_filename, src_path, repeat=1):
     """
     Exect pdflatex
     :param tex_filename: File name of the .tex to compile.
@@ -141,8 +144,9 @@ def exec_pdflatex(tex_filename, src_path):
     if tex_path == '':
         tex_path = '.'
 
-    aux_filename = os.path.splitext(tex_filename)[0] + ".aux"
-    pdf_filename = os.path.splitext(tex_filename)[0] + ".pdf"
+    raw_filename = os.path.splitext(tex_filename)[0]
+    aux_filename = raw_filename + ".aux"
+    pdf_filename = raw_filename + ".pdf"
 
     # We enter the folder of the source to get proper relative paths to
     # figures
@@ -155,15 +159,15 @@ def exec_pdflatex(tex_filename, src_path):
 
     # Run pdflatex and bibtex a bunch of times
     try:
-        single_run()
-        single_run()
+        for k in range(repeat):
+            single_run()
 
-        if os.path.isfile(aux_filename):
-            run_command("bibtex %s" % tex_filename)
-            run_command("bibtex %s" % aux_filename)
+            if os.path.isfile(aux_filename):
+                run_command("bibtex {}".format(raw_filename))
+                run_command("bibtex {}".format(aux_filename))
 
-        single_run()
-        single_run()
+            single_run()
+            single_run()
 
         logger.info("Ran pdflatex and bibtex.")
     except:
@@ -286,6 +290,12 @@ EXAMPLE USAGE:
         dest='exclude_sections',
         help='Tells latexdiff to exclude diffs inside sub/section titles, which sometimes cause latex build problems.')
 
+    parser.add_argument("-r", "--repeat", 
+        default=1,
+        dest='repeat',
+        help="Number of times to run the latex compiler.",
+        type=int)
+
     parser.add_argument('--utf8', action='store_true',
         dest='utf8',
         help='Pass "--encoding=utf8" to latexdiff.')
@@ -406,13 +416,16 @@ def main():
     if args.makepdf:
         if has_latexmk() and not args.force_pdflatex:
             logger.info("Proceeding with latexmk.")
-            pdf_filename = exec_latexmk(dst_filename, os.path.join(root_path, relative_path))
+            exec_fcn = exec_latexmk
         else:
             if args.force_pdflatex:
                 logger.info("latexmk found but you said not to use it...using pdflatex and bibtex")
             else:
                 logger.info("latexmk wasn't found...using pdflatex and bibtex")
-            pdf_filename = exec_pdflatex(dst_filename, os.path.join(root_path, relative_path))
+            exec_fcn = exec_pdflatex
+        if args.repeat > 1:
+            logger.info("Going to try and repeat the build function {} times...standby".format(args.repeat))
+        pdf_filename = exec_fcn(dst_filename, os.path.join(root_path, relative_path), repeat=args.repeat)
 
         # Open the pdf
         if args.openpdf:
