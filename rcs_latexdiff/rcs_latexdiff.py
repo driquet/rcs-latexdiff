@@ -1,3 +1,5 @@
+from __future__ import print_function, absolute_import
+
 import re
 import argparse
 import logging
@@ -7,8 +9,8 @@ import sys
 import subprocess
 import distutils.spawn
 
-from rcs import get_rcs_class
-from utils import run_command, write_file, remove_latex_comments
+from .rcs import get_rcs_class
+from .utils import run_command, write_file, remove_latex_comments
 
 
 logger = logging.getLogger("rcs-latexdiff")
@@ -346,7 +348,7 @@ def check_latexdiff():
 
     # latexdiff tool not available ?
     if ret:
-        print """latexdiff tool not found in PATH
+        print("""latexdiff tool not found in PATH
 Install it or correct your PATH
 
 You can install it as follows:
@@ -354,7 +356,7 @@ You can install it as follows:
         apt-get install latexdiff
     MacPorts (OS X):
         sudo port install latexdiff
-"""
+""")
         exit(1)
 
 

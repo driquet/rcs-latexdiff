@@ -1,7 +1,9 @@
+from __future__ import print_function, absolute_import
+
 import os
 import logging
 
-from utils import run_command
+from .utils import run_command
 
 logger = logging.getLogger("rcs-latexdiff")
 

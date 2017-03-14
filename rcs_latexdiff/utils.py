@@ -1,3 +1,5 @@
+from __future__ import print_function, absolute_import
+
 import subprocess
 import logging
 import re
@@ -17,17 +19,17 @@ def run_command(command, path=""):
     try:
         # Forge command
         if path not in ['', '.']:
-            command = '(cd %s && %s)' % (path, command)
+            command = '(cd {} && {})'.format(path, command)
 
         logger.debug("Run command: %s" % (command))
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output = process.communicate()[0]
+        output = process.communicate()[0].decode('utf-8')
         retcode = process.returncode
 
         logger.debug("Return code: %d" % (retcode))
         return retcode, output
 
-    except OSError, e:
+    except OSError as e:
         logger.info("Execution failed: %s" % (e))
         exit(1)
 
