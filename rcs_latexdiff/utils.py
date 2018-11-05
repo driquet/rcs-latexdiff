@@ -41,6 +41,8 @@ def write_file(content, filename):
 
     """
     logger.debug("Writing content into %s" % filename)
+    if isinstance(content, unicode):
+        content = content.encode("utf-8")
     with open(filename, 'w') as f:
         f.write(content)
 
