@@ -47,5 +47,7 @@ def write_file(content, filename):
         f.write(content)
 
 def remove_latex_comments(content):
+    # If a line contains only a comment, remove the line completely
+    content = re.sub(r'^[ \t]*%.*\r?\n', '', content, flags=re.MULTILINE)
     # Remove all content which follows a % except if % is preceded by \
     return re.sub(r'(?<!\\)%.*', '', content)
